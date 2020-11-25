@@ -6,60 +6,6 @@ const moment = require("moment");
 const minParams = 1;
 const input = process.argv[2];
 const encoding = "utf-8";
-
-//config DE-PARA: Cada campo OBN representa uma posição inicial (mapeada no cnab),
-//  um tamanho e um default (padding para a esquerda pode ser definido)
-const configOBN = {
-  header: {
-    //Zeros
-    _001: {
-      inicioCNAB: null,
-      tamanho: 35,
-      default: "",
-    },
-    //Data de geracao do arquivo
-    _036: {
-      inicioCNAB: null,
-      tamanho: 8,
-      default: moment().format("DDMMYYYY"),
-    },
-    //Hora de geracao do arquivo
-    _044: {
-      inicioCNAB: null,
-      tamanho: 4,
-      default: moment().format("HHMM"),
-    },
-    //teste padding
-    _048: {
-      inicioCNAB: null,
-      tamanho: 20,
-      default: "teste padding",
-      padding: " ",
-    },
-    //teste recupera cnab
-    _053: {
-      inicioCNAB: 73,
-      tamanho: 30,
-      default: "teste recupera cnab",
-    },
-    _059: {
-      inicioCNAB: null,
-      tamanho: 11,
-      default: "placeholder",
-    },
-    _068: {
-      inicioCNAB: null,
-      tamanho: 11,
-      default: "placeholder",
-    },
-    _344: {
-      inicioCNAB: null,
-      tamanho: 11,
-      default: "placeholder",
-    },
-  },
-};
-
 if (process.argv.length < 2 + minParams)
   throw (
     "Necessários pelo menos " +
@@ -84,8 +30,61 @@ fs.readFile(input, encoding, (err, data) => {
   });
 });
 
+//gera arquivo OBN
 function generateOBN(data, callback) {
   let outputOBN = "";
+  //config DE-PARA: Cada campo OBN representa uma posição inicial (mapeada no cnab),
+  //  um tamanho e um default (padding para a esquerda pode ser definido)
+  const configOBN = {
+    header: {
+      //Zeros
+      _001: {
+        inicioCNAB: null,
+        tamanho: 35,
+        default: "",
+      },
+      //Data de geracao do arquivo
+      _036: {
+        inicioCNAB: null,
+        tamanho: 8,
+        default: moment().format("DDMMYYYY"),
+      },
+      //Hora de geracao do arquivo
+      _044: {
+        inicioCNAB: null,
+        tamanho: 4,
+        default: moment().format("HHMM"),
+      },
+      //teste padding
+      _048: {
+        inicioCNAB: null,
+        tamanho: 20,
+        default: "teste padding",
+        padding: " ",
+      },
+      //teste recupera cnab
+      _053: {
+        inicioCNAB: 73,
+        tamanho: 30,
+        default: "teste recupera cnab",
+      },
+      _059: {
+        inicioCNAB: null,
+        tamanho: 11,
+        default: "placeholder",
+      },
+      _068: {
+        inicioCNAB: null,
+        tamanho: 11,
+        default: "placeholder",
+      },
+      _344: {
+        inicioCNAB: null,
+        tamanho: 11,
+        default: "placeholder",
+      },
+    },
+  };
   for (const part in configOBN) {
     const fields = configOBN[part];
     for (const key in fields) {
