@@ -15,7 +15,7 @@ const configOBN = {
     _001: {
       inicioCNAB: null,
       tamanho: 35,
-      default: 00000000000000000000000000000000000,
+      default: "",
     },
     //Data de geracao do arquivo
     _036: {
@@ -70,31 +70,42 @@ if (process.argv.length < 2 + minParams)
 //leitura e geração do arquivo
 fs.readFile(input, encoding, (err, data) => {
   if (err) throw err;
+  generateOBN(data, (outputOBN) => {
+    fs.appendFile(
+      process.argv[3] ||
+        "inciso1-obn600" + moment().format("ddmmyyhhmmss") + ".txt",
+      outputOBN,
+      (err) => {
+        if (err) throw err;
+        console.log(outputOBN);
+        return outputOBN;
+      }
+    );
+  });
+});
+
+function generateOBN(data, callback) {
   let outputOBN = "";
-  //adiciona header ao arquivo OBN
-  const header = configOBN.header;
-  for (const key in header) {
-    const field = header[key];
-    if (field.inicioCNAB == null) {
-      //default
-      outputOBN += field.default
-        .toString()
-        .padStart(field.tamanho, field.padding ? field.padding : 0);
-    } else {
-      //get cnab
-      outputOBN += data
-        .substring(field.inicioCNAB - 1, field.inicioCNAB + field.tamanho - 1)
-        .toString()
-        .padStart(field.tamanho, field.padding ? field.padding : 0);
+  for (const part in configOBN) {
+    const fields = configOBN[part];
+    for (const key in fields) {
+      const field = fields[key];
+      if (field.inicioCNAB == null) {
+        //default
+        outputOBN += (field.default + "").padStart(
+          field.tamanho,
+          field.padding ? field.padding : 0
+        );
+      } else {
+        //get cnab
+        outputOBN += (
+          data.substring(
+            field.inicioCNAB - 1,
+            field.inicioCNAB + field.tamanho - 1
+          ) + ""
+        ).padStart(field.tamanho, field.padding ? field.padding : 0);
+      }
     }
   }
-  fs.appendFile(
-    process.argv[3] ||
-      "inciso1-obn600" + moment().format("ddmmyyhhmmss") + ".txt",
-    outputOBN,
-    (err) => {
-      if (err) throw err;
-      console.log(outputOBN);
-    }
-  );
-});
+  callback(outputOBN);
+}
