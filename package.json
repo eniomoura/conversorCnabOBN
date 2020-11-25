@@ -1,0 +1,23 @@
+{
+  "name": "conversorcnabobn",
+  "version": "0.0.1",
+  "description": "Pequena ferramenta para converter um documento CNAB para OBN (Febraban)",
+  "main": "convertCnab.js",
+  "dependencies": {
+    "moment": "^2.29.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eniomoura/conversorCnabOBN.git"
+  },
+  "author": "eniomoura",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eniomoura/conversorCnabOBN/issues"
+  },
+  "homepage": "https://github.com/eniomoura/conversorCnabOBN#readme"
+}
