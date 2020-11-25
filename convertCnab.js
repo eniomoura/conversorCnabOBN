@@ -4,14 +4,24 @@ const moment = require("moment");
 
 //configs
 const minParams = 1;
+const dbfile = "db.json";
 const input = process.argv[2];
 const encoding = "utf-8";
+let db = {};
 if (process.argv.length < 2 + minParams)
   throw (
     "Necessários pelo menos " +
     minParams +
     " parâmetros - o caminho do arquivo de entrada e saída."
   );
+fs.readFile(dbfile, encoding, (err, data) => {
+  if (err || !data) {
+    console.log("Inicializando arquivo de db...");
+    updateDb({ numeroLote: 0 });
+  } else {
+    db = JSON.parse(data);
+  }
+});
 
 //leitura e geração do arquivo
 fs.readFile(input, encoding, (err, data) => {
@@ -19,10 +29,11 @@ fs.readFile(input, encoding, (err, data) => {
   generateOBN(data, (outputOBN) => {
     fs.appendFile(
       process.argv[3] ||
-        "inciso1-obn600" + moment().format("ddmmyyhhmmss") + ".txt",
+        "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt",
       outputOBN,
       (err) => {
         if (err) throw err;
+        updateDb({ numeroLote: db.numeroLote + 1 });
         console.log(outputOBN);
         return outputOBN;
       }
@@ -45,17 +56,17 @@ function generateOBN(data, callback) {
       },
       //Data de geracao do arquivo
       _036: {
-        inicioCNAB: null,
+        inicioCNAB: 144,
         tamanho: 8,
-        default: moment().format("DDMMYYYY"),
+        default: null,
       },
       //Hora de geracao do arquivo
       _044: {
-        inicioCNAB: null,
+        inicioCNAB: 152,
         tamanho: 4,
         default: moment().format("HHMM"),
       },
-      //teste padding
+      //Número da remessa
       _048: {
         inicioCNAB: null,
         tamanho: 20,
@@ -107,4 +118,11 @@ function generateOBN(data, callback) {
     }
   }
   callback(outputOBN);
+}
+
+function updateDb(newState) {
+  db = { ...db, ...newState };
+  fs.writeFile("db.json", JSON.stringify(db), (err) => {
+    if (err) throw err;
+  });
 }
