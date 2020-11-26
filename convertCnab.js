@@ -416,6 +416,7 @@ function generateOBN(data, callback) {
       ).padStart(field.tamanho, field.padding ? field.padding : 0);
     }
   }
+  trailer._338.default += sequencialArquivo;
   sequencialArquivo++;
   outputOBN += "\n";
 
@@ -474,8 +475,6 @@ function generateOBN(data, callback) {
       ).padStart(field.tamanho, field.padding ? field.padding : 0);
     }
   }
-  sequencialArquivo++;
-
   callback(outputOBN);
 }
 
