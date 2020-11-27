@@ -182,25 +182,25 @@ function generateOBN(data, callback) {
         default: "",
         padding: " ",
       },
-      //Código de operação
+      //Código de operação (10)
       _052: {
         inicioCNAB: null,
         tamanho: 2,
-        default: "",
+        default: "10",
         padding: " ",
       },
-      //Indicador de pagamento de pessoal:
+      //Indicador de pagamento de pessoal (0):
       _054: {
         inicioCNAB: null,
         tamanho: 1,
-        default: "",
+        default: "0",
       },
       //Zeros
       _055: {
         inicioCNAB: null,
         tamanho: 11, //9 + 2 de padding para prox campo
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Valor líquido da OB
       _064: {
@@ -218,7 +218,7 @@ function generateOBN(data, callback) {
       },
       //Código da agência bancária do favorecido
       _084: {
-        inicioCNAB: 24,
+        inicioCNAB: 25, //Truncando 1 a esquerda do CNAB (24+1)
         tamanho: 4,
         default: "",
         padding: " ",
@@ -322,22 +322,28 @@ function generateOBN(data, callback) {
       //Código do favorecido (CPF)
       _306: {
         inicioCNAB: 259, //SEGMENTO B, 19
-        tamanho: 14,
+        tamanho: 11,
         default: "",
+      },
+      //Padding CPF (Não usar para CNPJ)
+      _paddingCpf: {
+        tamanho: 3,
+        default: "",
+        padding: " ",
       },
       //Prefixo da agência com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
       _320: {
         inicioCNAB: null,
         tamanho: 5,
-        default: "",
+        default: "00868",
         padding: " ",
       },
       //Número conta com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
       _325: {
         inicioCNAB: null,
         tamanho: 10,
-        default: "",
-        padding: " ",
+        default: "203580",
+        padding: "0",
       },
       //Finalidade do pagamento – Fundeb
       _335: {
@@ -367,23 +373,27 @@ function generateOBN(data, callback) {
       },
     },
     trailer: {
+      // Noves
       _001: {
         inicioCNAB: null,
         tamanho: 35,
         default: "",
         padding: "9",
       },
+      // Brancos
       _036: {
         inicioCNAB: null,
         tamanho: 285,
         default: "",
         padding: " ",
       },
+      // Somatório dos valores de todas as OB’s tipo 2.
       _321: {
         inicioCNAB: null,
         tamanho: 17,
         default: somaValores,
       },
+      // Somatório das sequências de todos os registros exceto o registro trailer
       _338: {
         inicioCNAB: null,
         tamanho: 13,
