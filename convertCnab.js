@@ -93,11 +93,11 @@ function generateOBN(data, callback) {
         tamanho: 5,
         default: db.numeroLote,
       },
-      //10B001
+      //10B001 (Alterado para 10E001)
       _053: {
         inicioCNAB: null,
         tamanho: 6,
-        default: "10B001",
+        default: "10E001",
       },
       //Número do contrato no Banco
       _059: {
@@ -168,7 +168,7 @@ function generateOBN(data, callback) {
         default: 0000001,
         padding: " ",
       },
-      //Data de referência da relação DDMMAAAA
+      //Data de referência da relação DDMMAAAA (sobrescrita pela data cnab)
       _040: {
         inicioCNAB: null,
         tamanho: 8,
@@ -259,7 +259,7 @@ function generateOBN(data, callback) {
       },
       //Endereço do favorecido (vazio até ser necessário)
       _144: {
-        inicioCNAB: null,
+        inicioCNAB: 33 + 240, //Segmento B 33 + 240
         tamanho: 57,
         default: "",
         padding: " ",
@@ -273,8 +273,14 @@ function generateOBN(data, callback) {
       },
       //Município do favorecido (vazio até ser necessário)
       _209: {
-        inicioCNAB: null,
-        tamanho: 28,
+        inicioCNAB: 98 + 240, //Segmento B 98 + 240
+        tamanho: 20,
+        default: "",
+        padding: " ",
+      },
+      //Padding para final de municipio (CNAB 20, OBN 28)
+      paddingMunicipio: {
+        tamanho: 8,
         default: "",
         padding: " ",
       },
@@ -287,14 +293,14 @@ function generateOBN(data, callback) {
       },
       //CEP do favorecido (vazio até ser necessário)
       _254: {
-        inicioCNAB: null,
+        inicioCNAB: 118 + 240, //Segmento B 118 + 240
         tamanho: 8,
         default: "",
         padding: " ",
       },
-      //UF do favorecido
+      //UF do favorecido (vazio até ser necessário)
       _262: {
-        inicioCNAB: null,
+        inicioCNAB: 126 + 240, //Segmento B 126 + 240
         tamanho: 2,
         default: "",
         padding: " ",
@@ -321,7 +327,7 @@ function generateOBN(data, callback) {
       },
       //Código do favorecido (CPF)
       _306: {
-        inicioCNAB: 259, //SEGMENTO B, 19
+        inicioCNAB: 262, //SEGMENTO B, 19 + 3
         tamanho: 11,
         default: "",
       },
@@ -406,6 +412,7 @@ function generateOBN(data, callback) {
   const header = configOBN.header;
   const registro = configOBN.registro;
   const trailer = configOBN.trailer;
+  const dataCnab = data[0].substring(143, 151) + "";
 
   //gera header
   for (const key in header) {
@@ -428,7 +435,7 @@ function generateOBN(data, callback) {
   }
   trailer._338.default += sequencialArquivo;
   sequencialArquivo++;
-  outputOBN += "\n";
+  outputOBN += "\r\n";
 
   //gera registro (tipo 2 OBN)
   let value;
@@ -437,6 +444,9 @@ function generateOBN(data, callback) {
     linhas = data[i].replace(/\r?\n|\r/g, "") + data[i + 1];
     for (const key in registro) {
       const field = registro[key];
+      if (key === "_040") {
+        registro._040.default = dataCnab;
+      }
       if (field.inicioCNAB == null && key !== "_344") {
         //default
         value = (field.default + "").padStart(
@@ -463,7 +473,7 @@ function generateOBN(data, callback) {
         sequencialArquivo++;
       }
     }
-    outputOBN += "\n";
+    outputOBN += "\r\n";
   }
 
   //gera trailer
