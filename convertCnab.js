@@ -85,7 +85,7 @@ function generateOBN(data, callback) {
       _044: {
         inicioCNAB: 152,
         tamanho: 4,
-        default: moment().format("HHMM"),
+        default: "",
       },
       //Número da remessa
       _048: {
@@ -145,7 +145,7 @@ function generateOBN(data, callback) {
         inicioCNAB: null,
         tamanho: 6,
         default: 86,
-        padding: " ",
+        padding: "0",
       },
       //Código da Gestão
       _013: {
@@ -158,21 +158,21 @@ function generateOBN(data, callback) {
       _018: {
         inicioCNAB: null,
         tamanho: 11,
-        default: 0000001,
-        padding: " ",
+        default: "", //setado programaticamente
+        padding: "0",
       },
       //Código da OB
       _029: {
         inicioCNAB: null,
         tamanho: 11,
-        default: 0000001,
-        padding: " ",
+        default: "", //setado programaticamente
+        padding: "0",
       },
       //Data de referência da relação DDMMAAAA (sobrescrita pela data cnab)
       _040: {
         inicioCNAB: null,
         tamanho: 8,
-        default: "",
+        default: "10122020",
         padding: " ",
       },
       //Brancos
@@ -182,11 +182,11 @@ function generateOBN(data, callback) {
         default: "",
         padding: " ",
       },
-      //Código de operação (10)
+      //Código de operação
       _052: {
         inicioCNAB: null,
         tamanho: 2,
-        default: "10",
+        default: "", //setado programaticamente
         padding: " ",
       },
       //Indicador de pagamento de pessoal (0):
@@ -318,11 +318,11 @@ function generateOBN(data, callback) {
         tamanho: 1,
         default: 0,
       },
-      //Tipo favorecido:
+      //Tipo favorecido: (2 = CPF)
       _305: {
-        inicioCNAB: 258, //SEGMENTO B, 18
+        inicioCNAB: null, //SEGMENTO B, 18
         tamanho: 1,
-        default: "",
+        default: 2,
         padding: " ",
       },
       //Código do favorecido (CPF)
@@ -369,7 +369,8 @@ function generateOBN(data, callback) {
       _342: {
         inicioCNAB: null,
         tamanho: 2,
-        default: 0000001,
+        default: "",
+        padding: "0",
       },
       //Número seqüencial no arquivo, consecutivo
       _344: {
@@ -444,9 +445,27 @@ function generateOBN(data, callback) {
     linhas = data[i].replace(/\r?\n|\r/g, "") + data[i + 1];
     for (const key in registro) {
       const field = registro[key];
+
+      //Campos setados programaticamente
+      if (key === "_018") {
+        registro._018.default = sequencialArquivo + db.numeroLote;
+      }
+      if (key === "_029") {
+        registro._029.default = sequencialArquivo + db.numeroLote;
+      }
       if (key === "_040") {
         registro._040.default = dataCnab;
       }
+      if (key === "_052") {
+        cnabValue = linhas.substring(21 - 1, 21 + 3 - 1) + "";
+        if (cnabValue === "001") {
+          registro._052.default = 32;
+        } else {
+          registro._052.default = 31;
+        }
+      }
+      //Campos setados programaticamente END
+
       if (field.inicioCNAB == null && key !== "_344") {
         //default
         value = (field.default + "").padStart(
