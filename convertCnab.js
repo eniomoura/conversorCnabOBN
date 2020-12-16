@@ -44,10 +44,10 @@ function createFile(db) {
     "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
   fs.readFile(input, encoding, (err, data) => {
     if (err) throw err;
-    generateOBN(data, (outputOBN) => {
+    generateOBN(data, (outputOBN, sequencialArquivo) => {
       fs.appendFile(filename, outputOBN, (err) => {
         if (err) throw err;
-        updateDb({ numeroLote: db.numeroLote + 1 });
+        updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
         console.log("Arquivo " + filename + " gerado com sucesso.");
         return outputOBN;
       });
@@ -514,7 +514,7 @@ function generateOBN(data, callback) {
       ).padStart(field.tamanho, field.padding ? field.padding : 0);
     }
   }
-  callback(outputOBN);
+  callback(outputOBN, sequencialArquivo);
 }
 
 //util functions
