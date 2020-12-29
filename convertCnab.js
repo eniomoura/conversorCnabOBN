@@ -44,7 +44,7 @@ function createFile(db) {
     "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
   fs.readFile(input, encoding, (err, data) => {
     if (err) throw err;
-    generateOBN(data, (outputOBN, sequencialArquivo) => {
+    generateOBNfromCNAB(data, (outputOBN, sequencialArquivo) => {
       fs.appendFile(filename, outputOBN, (err) => {
         if (err) throw err;
         updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
@@ -56,7 +56,90 @@ function createFile(db) {
 }
 
 //gera arquivo OBN
-function generateOBN(data, callback) {
+function generateOBN(callback, obnData) {
+  //init
+  let outputOBN = "";
+
+  let sequencialArquivo = 1;
+  let somaSequenciais = 0;
+  let somaValores = 0;
+
+  //aliases
+  const header = obnData.header;
+  const registro = obnData.registro;
+  const trailer = obnData.trailer;
+
+  //gera header
+  for (const key in header) {
+    const field = header[key];
+    outputOBN += (obnData[0].value + "").padStart(
+      field.tamanho,
+      field.padding ? field.padding : 0
+    );
+  }
+  trailer._338.default += sequencialArquivo;
+  sequencialArquivo++;
+  outputOBN += "\r\n";
+
+  //gera registro (tipo 2 OBN)
+  let value;
+  for (let i = 0; i < obnData.length; i++) {
+    for (const key in registro) {
+      const field = registro[key];
+
+      //Campos setados programaticamente
+      if (key === "_018") {
+        registro._018.default = db.numeroLote;
+      }
+      if (key === "_029") {
+        registro._029.default = sequencialArquivo + db.numeroLote;
+      }
+      if (key === "_040") {
+        registro._040.default = moment("ddmmyyyy");
+      }
+      if (key === "_052") {
+        if (obnData["_081"].value === "001") {
+          registro._052.default = 32;
+        } else {
+          registro._052.default = 31;
+        }
+      }
+      //Campos setados programaticamente END
+
+      if (key !== "_344") {
+        value = (obnData[key].value + "").padStart(
+          field.tamanho,
+          field.padding ? field.padding : 0
+        );
+        outputOBN += value;
+      }
+      if (key === "_064") {
+        trailer._321.default += parseInt(value);
+      }
+      if (key === "_344") {
+        outputOBN += (sequencialArquivo + "").padStart(7, "0");
+        trailer._338.default += sequencialArquivo;
+        sequencialArquivo++;
+      }
+    }
+    outputOBN += "\r\n";
+  }
+
+  //gera trailer
+  for (const key in trailer) {
+    const field = trailer[key];
+    outputOBN += (
+      data[0].substring(
+        field.inicioCNAB - 1,
+        field.inicioCNAB + field.tamanho - 1
+      ) + ""
+    ).padStart(field.tamanho, field.padding ? field.padding : 0);
+  }
+  callback(outputOBN, sequencialArquivo);
+}
+
+//gera arquivo OBN
+function generateOBNfromCNAB(data, callback) {
   //init
   let outputOBN = "";
   data = data.split("\n");
@@ -172,7 +255,7 @@ function generateOBN(data, callback) {
       _040: {
         inicioCNAB: null,
         tamanho: 8,
-        default: "10122020",
+        default: db.dataReferencia,
         padding: " ",
       },
       //Brancos
@@ -448,7 +531,7 @@ function generateOBN(data, callback) {
 
       //Campos setados programaticamente
       if (key === "_018") {
-        registro._018.default = sequencialArquivo + db.numeroLote;
+        registro._018.default = db.numeroLote;
       }
       if (key === "_029") {
         registro._029.default = sequencialArquivo + db.numeroLote;
