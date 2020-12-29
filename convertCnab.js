@@ -217,8 +217,7 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         padding: "0",
         hook: (i) => {
-          registro._064.default =
-            (obnData[i]['"VALOR1"'] + "00").replace(/\"/g, "") + "";
+          registro._064.default = obnData[i].VALOR + "00";
         },
       },
       //Código do banco do favorecido
@@ -231,28 +230,14 @@ function generateOBNfromArray(obnData, callback) {
       //Código da agência bancária do favorecido
       _084: {
         arrayKey: "AGENCIA",
-        tamanho: 4,
-        default: "",
-        padding: "0",
-      },
-      //Dígito verificador (DV) da agência bancária do favorecido
-      _088: {
-        arrayKey: "AGENCIADIGITO",
-        tamanho: 1,
+        tamanho: 5,
         default: "",
         padding: "0",
       },
       //Código da conta corrente bancária do favorecido
       _089: {
         arrayKey: "CONTA",
-        tamanho: 9,
-        default: "",
-        padding: "0",
-      },
-      //Dígito verificador (DV) da conta corrente do favorecido
-      _098: {
-        arrayKey: "CONTADIGITO",
-        tamanho: 1,
+        tamanho: 10,
         default: "",
         padding: "0",
       },
@@ -262,7 +247,7 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         padding: " ",
         hook: (i) => {
-          registro._099.default = obnData[i].NOME.padEnd(30, " ");
+          registro._099.default = obnData[i].NOME.padEnd(45, " ");
         },
       },
       //Endereço do favorecido (vazio até ser necessário)
