@@ -91,12 +91,12 @@ function generateOBNfromArray(obnData, callback) {
       //Data de geracao do arquivo DDMMAAAA
       _036: {
         tamanho: 8,
-        default: moment("ddmmyyyy"),
+        default: moment().format("DDMMYYYY"),
       },
-      //Hora de geracao do arquivo
+      //Hora de geracao do arquivo HHMM
       _044: {
         tamanho: 4,
-        default: moment("hhmm"),
+        default: moment().format("HHmm"),
       },
       //Número da remessa
       _048: {
@@ -131,41 +131,35 @@ function generateOBNfromArray(obnData, callback) {
     registro: {
       //2
       _001: {
-        arrayKey: null,
         tamanho: 1,
         default: 2,
       },
       //Código da agência bancária da UG/Gestão
       _002: {
-        arrayKey: null,
         tamanho: 4,
         default: "0086",
         padding: " ",
       },
       //Dígito verificador da agência bancária da UG/Gestão
       _006: {
-        arrayKey: null,
         tamanho: 1,
         default: 8,
         padding: " ",
       },
       //Código da UG
       _007: {
-        arrayKey: null,
         tamanho: 6,
         default: 86,
         padding: "0",
       },
       //Código da Gestão
       _013: {
-        arrayKey: null,
         tamanho: 5,
         default: 20358,
         padding: " ",
       },
       //Código da relação (RE) na qual consta a OB
       _018: {
-        arrayKey: null,
         tamanho: 11,
         default: "", //setado programaticamente
         padding: "0",
@@ -175,7 +169,6 @@ function generateOBNfromArray(obnData, callback) {
       },
       //Código da OB
       _029: {
-        arrayKey: null,
         tamanho: 11,
         default: "", //setado programaticamente
         padding: "0",
@@ -185,25 +178,22 @@ function generateOBNfromArray(obnData, callback) {
       },
       //Data de referência da relação DDMMAAAA
       _040: {
-        arrayKey: null,
         tamanho: 8,
         default: db.dataReferencia,
         padding: " ",
       },
       //Brancos
       _048: {
-        arrayKey: null,
         tamanho: 4,
         default: "",
         padding: " ",
       },
       //Código de operação
       _052: {
-        arrayKey: null,
         tamanho: 2,
         default: "", //setado programaticamente
         padding: " ",
-        hook: () => {
+        hook: (i) => {
           if (obnData[i].BANCO === "001") {
             registro._052.default = 32;
           } else {
@@ -213,131 +203,133 @@ function generateOBNfromArray(obnData, callback) {
       },
       //Indicador de pagamento de pessoal (0):
       _054: {
-        arrayKey: null,
         tamanho: 1,
         default: "0",
       },
       //Zeros
       _055: {
-        arrayKey: null,
         tamanho: 9,
         default: "",
         padding: "0",
       },
       //Valor líquido da OB
       _064: {
-        arrayKey: 120,
-        tamanho: 15,
-        default: "",
-        padding: " ",
+        tamanho: 17,
+        default: "", //setado programaticamente
+        padding: "0",
+        hook: (i) => {
+          registro._064.default =
+            (obnData[i]['"VALOR1"'] + "00").replace(/\"/g, "") + "";
+        },
       },
       //Código do banco do favorecido
       _081: {
-        arrayKey: 21,
-        tamanho: 3,
+        arrayKey: "BANCO",
+        tamanho: 3, //padding de 2 zeros para campo anterior (0 centavos)
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Código da agência bancária do favorecido
       _084: {
-        arrayKey: 25,
+        arrayKey: "AGENCIA",
         tamanho: 4,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Dígito verificador (DV) da agência bancária do favorecido
       _088: {
-        arrayKey: 29,
+        arrayKey: "AGENCIADIGITO",
         tamanho: 1,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Código da conta corrente bancária do favorecido
       _089: {
-        arrayKey: 33,
+        arrayKey: "CONTA",
         tamanho: 9,
         default: "",
-        padding: " ",
+        padding: "0",
       },
-      //Dígito verificador (DV) da conta corrente dofavorecido
+      //Dígito verificador (DV) da conta corrente do favorecido
       _098: {
-        arrayKey: 42,
+        arrayKey: "CONTADIGITO",
         tamanho: 1,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Nome do favorecido
       _099: {
-        arrayKey: 44,
-        tamanho: 30,
-        default: "",
+        tamanho: 45,
+        default: "", //setado programaticamente
         padding: " ",
+        hook: (i) => {
+          registro._099.default = obnData[i].NOME.padEnd(30, " ");
+        },
       },
       //Endereço do favorecido (vazio até ser necessário)
       _144: {
-        arrayKey: 33 + 240, //Segmento B 33 + 240
         tamanho: 57,
-        default: "",
+        default: "", //setado programaticamente
         padding: " ",
+        hook: (i) => {
+          registro._144.default = obnData[i].ENDERECO.padEnd(57, " ");
+        },
       },
       //Código Identificador do Sistema de Pagamentos Brasileiro - ISPB do favorecido
       _201: {
-        arrayKey: null,
         tamanho: 8,
         default: "",
         padding: " ",
       },
       //Município do favorecido (vazio até ser necessário)
       _209: {
-        arrayKey: 98 + 240, //Segmento B 98 + 240
-        tamanho: 20,
-        default: "",
+        tamanho: 28,
+        default: "", //setado programaticamente
         padding: " ",
+        hook: (i) => {
+          registro._209.default = obnData[i].CIDADE.padEnd(28, " ");
+        },
       },
       //Código GRU Depósito ou brancos
       _237: {
-        arrayKey: null,
         tamanho: 17,
         default: "",
         padding: " ",
       },
       //CEP do favorecido (vazio até ser necessário)
       _254: {
-        arrayKey: 118 + 240, //Segmento B 118 + 240
+        arrayKey: "CEP",
         tamanho: 8,
         default: "",
         padding: " ",
       },
       //UF do favorecido (vazio até ser necessário)
       _262: {
-        arrayKey: 126 + 240, //Segmento B 126 + 240
+        arrayKey: "ESTADO",
         tamanho: 2,
         default: "",
         padding: " ",
       },
       //Observação da OB
       _264: {
-        arrayKey: null,
         tamanho: 40,
         default: "",
         padding: " ",
       },
       //0
       _304: {
-        arrayKey: null,
         tamanho: 1,
         default: 0,
       },
       //Tipo favorecido: (2 = CPF)
       _305: {
-        arrayKey: null, //SEGMENTO B, 18
         tamanho: 1,
         default: 2,
         padding: " ",
       },
       //Código do favorecido (CPF)
       _306: {
-        arrayKey: 262, //SEGMENTO B, 19 + 3
+        arrayKey: "CPF",
         tamanho: 11,
         default: "",
       },
@@ -349,42 +341,36 @@ function generateOBNfromArray(obnData, callback) {
       },
       //Prefixo da agência com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
       _320: {
-        arrayKey: null,
         tamanho: 5,
         default: "00868",
         padding: " ",
       },
       //Número conta com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
       _325: {
-        arrayKey: null,
         tamanho: 10,
         default: "203580",
         padding: "0",
       },
       //Finalidade do pagamento – Fundeb
       _335: {
-        arrayKey: null,
         tamanho: 3,
         default: "",
         padding: " ",
       },
       //Brancos
       _338: {
-        arrayKey: null,
         tamanho: 4,
         default: "",
         padding: " ",
       },
       //Código de retorno da operação
       _342: {
-        arrayKey: null,
         tamanho: 2,
         default: "",
         padding: "0",
       },
       //Número seqüencial no arquivo, consecutivo
       _344: {
-        arrayKey: null,
         tamanho: 7,
         default: sequencialArquivo,
         hook: () => {
@@ -450,9 +436,9 @@ function generateOBNfromArray(obnData, callback) {
       const field = registro[key];
 
       if (typeof field.hook === "function") {
-        field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+        field.hook.bind(this)(i); //chama funções setando valores programáticos no campo
       }
-      if (field.inicioCNAB == null) {
+      if (!field.arrayKey) {
         //default
         field.value = (field.default + "").padStart(
           field.tamanho,
@@ -460,8 +446,9 @@ function generateOBNfromArray(obnData, callback) {
         );
         outputOBN += field.value;
       } else {
+        console.log(obnData[i], field.arrayKey);
         //get from array
-        field.value = (obnData[i][field.arrayKey] + "").padStart(
+        field.value = (obnData[i][field.arrayKey].trim() + "").padStart(
           field.tamanho,
           field.padding ? field.padding : 0
         );
