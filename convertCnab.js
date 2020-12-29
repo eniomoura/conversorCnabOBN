@@ -1,4 +1,3 @@
-//após dev alterar num de lote para 1201
 //libs
 const fs = require("fs");
 const moment = require("moment");
