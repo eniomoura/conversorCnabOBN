@@ -8,9 +8,9 @@ const dbfile = "db.json";
 const initialDb = { numeroLote: 1 };
 const input = process.argv[2];
 const encoding = "utf-8";
-let db = {};
 
 //inicializacao
+let db = {};
 if (process.argv.length < 2 + minParams)
   throw (
     "Necessários pelo menos " +
@@ -120,6 +120,9 @@ function generateOBNfromCNAB(data, callback) {
         inicioCNAB: null,
         tamanho: 7,
         default: sequencialArquivo,
+        hook: () => {
+          trailer._338.default += sequencialArquivo;
+        },
       },
     },
     registro: {
@@ -184,7 +187,7 @@ function generateOBNfromCNAB(data, callback) {
         default: db.dataReferencia,
         padding: " ",
         hook: () => {
-          registro._040.default = dataCnab;
+          registro._040.default = data[0].substring(143, 151) + ""; //data no CNAB
         },
       },
       //Brancos
@@ -400,7 +403,6 @@ function generateOBNfromCNAB(data, callback) {
         hook: () => {
           registro._344.default = sequencialArquivo;
           trailer._338.default += sequencialArquivo;
-          sequencialArquivo++;
         },
       },
     },
@@ -438,11 +440,13 @@ function generateOBNfromCNAB(data, callback) {
   const header = configOBN.header;
   const registro = configOBN.registro;
   const trailer = configOBN.trailer;
-  const dataCnab = data[0].substring(143, 151) + "";
 
   //gera header
   for (const key in header) {
     const field = header[key];
+    if (typeof field.hook === "function") {
+      field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+    }
     if (field.inicioCNAB == null) {
       //default
       outputOBN += (field.default + "").padStart(
@@ -459,7 +463,7 @@ function generateOBNfromCNAB(data, callback) {
       ).padStart(field.tamanho, field.padding ? field.padding : 0);
     }
   }
-  trailer._338.default += sequencialArquivo;
+  //incrementa sequencial e quebra linha ao final do header:
   sequencialArquivo++;
   outputOBN += "\r\n";
 
@@ -476,31 +480,37 @@ function generateOBNfromCNAB(data, callback) {
       }
       if (field.inicioCNAB == null) {
         //default
-        value = (field.default + "").padStart(
+        field.value = (field.default + "").padStart(
           field.tamanho,
           field.padding ? field.padding : 0
         );
-        outputOBN += value;
+        outputOBN += field.value;
       } else {
         //get cnab
-        value = (
+        field.value = (
           linhas.substring(
             field.inicioCNAB - 1,
             field.inicioCNAB + field.tamanho - 1
           ) + ""
         ).padStart(field.tamanho, field.padding ? field.padding : 0);
-        outputOBN += value;
+        outputOBN += field.value;
       }
       if (key === "_064") {
-        trailer._321.default += parseInt(value); //soma dos valores totais
+        //soma dos valores totais
+        trailer._321.default += parseInt(field.value);
       }
     }
+    //incrementa sequencial e quebra linha ao final do registro:
+    sequencialArquivo++;
     outputOBN += "\r\n";
   }
 
   //gera trailer
   for (const key in trailer) {
     const field = trailer[key];
+    if (typeof field.hook === "function") {
+      field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+    }
     if (field.inicioCNAB == null) {
       //default
       outputOBN += (field.default + "").padStart(
