@@ -48,10 +48,10 @@ function createFile(db) {
   let filename =
     process.argv[3] ||
     "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
-  fs.readFile(input, encoding, (err, data) => {
-    if (err) throw err;
-    if (input.includes("cnab")) {
-      //gera a partir de CNAB
+  if (input.includes("cnab")) {
+    //gera a partir de CNAB
+    fs.readFile(input, encoding, (err, data) => {
+      if (err) throw err;
       generateOBNfromCNAB(data, (outputOBN, sequencialArquivo) => {
         fs.appendFile(filename, outputOBN, (err) => {
           if (err) throw err;
@@ -60,25 +60,365 @@ function createFile(db) {
           return outputOBN;
         });
       });
-    } else {
-      //gera a partir de CSV com dados financeiros
-      generateOBN(
-        csvReader.fieldDelimiter(",").getJsonFromCsv(input),
-        (outputOBN, sequencialArquivo) => {
-          fs.appendFile(filename, outputOBN, (err) => {
-            if (err) throw err;
-            updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
-            console.log("Arquivo " + filename + " gerado com sucesso.");
-            return outputOBN;
-          });
-        }
-      );
-    }
-  });
+    });
+  } else {
+    //gera a partir de CSV com dados financeiros
+    generateOBNfromArray(
+      csvReader.fieldDelimiter(",").getJsonFromCsv(input),
+      (outputOBN, sequencialArquivo) => {
+        fs.appendFile(filename, outputOBN, (err) => {
+          if (err) throw err;
+          updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
+          console.log("Arquivo " + filename + " gerado com sucesso.");
+          return outputOBN;
+        });
+      }
+    );
+  }
 }
 
 //gera arquivo OBN
-function generateOBN(obnData, callback) {
+function generateOBNfromArray(obnData, callback) {
+  // Cada campo OBN representa um valor (mapeado por chave) da array,
+  // um tamanho e um default (padding para a esquerda pode ser definido)
+  const configOBN = {
+    header: {
+      //Zeros
+      _001: {
+        tamanho: 35,
+        default: "",
+      },
+      //Data de geracao do arquivo DDMMAAAA
+      _036: {
+        tamanho: 8,
+        default: moment("ddmmyyyy"),
+      },
+      //Hora de geracao do arquivo
+      _044: {
+        tamanho: 4,
+        default: moment("hhmm"),
+      },
+      //Número da remessa
+      _048: {
+        tamanho: 5,
+        default: db.numeroLote,
+      },
+      //10B001 (Alterado para 10E001)
+      _053: {
+        tamanho: 6,
+        default: "10E001",
+      },
+      //Número do contrato no Banco
+      _059: {
+        tamanho: 9,
+        default: db.numContrato,
+      },
+      //Brancos
+      _068: {
+        tamanho: 276,
+        default: "",
+        padding: " ",
+      },
+      //Numero seqüencial no arquivo, iniciando em 0000001
+      _344: {
+        tamanho: 7,
+        default: sequencialArquivo,
+        hook: () => {
+          trailer._338.default += sequencialArquivo;
+        },
+      },
+    },
+    registro: {
+      //2
+      _001: {
+        arrayKey: null,
+        tamanho: 1,
+        default: 2,
+      },
+      //Código da agência bancária da UG/Gestão
+      _002: {
+        arrayKey: null,
+        tamanho: 4,
+        default: "0086",
+        padding: " ",
+      },
+      //Dígito verificador da agência bancária da UG/Gestão
+      _006: {
+        arrayKey: null,
+        tamanho: 1,
+        default: 8,
+        padding: " ",
+      },
+      //Código da UG
+      _007: {
+        arrayKey: null,
+        tamanho: 6,
+        default: 86,
+        padding: "0",
+      },
+      //Código da Gestão
+      _013: {
+        arrayKey: null,
+        tamanho: 5,
+        default: 20358,
+        padding: " ",
+      },
+      //Código da relação (RE) na qual consta a OB
+      _018: {
+        arrayKey: null,
+        tamanho: 11,
+        default: "", //setado programaticamente
+        padding: "0",
+        hook: () => {
+          registro._018.default = db.numeroLote;
+        },
+      },
+      //Código da OB
+      _029: {
+        arrayKey: null,
+        tamanho: 11,
+        default: "", //setado programaticamente
+        padding: "0",
+        hook: () => {
+          registro._029.default = sequencialArquivo + db.numeroLote;
+        },
+      },
+      //Data de referência da relação DDMMAAAA
+      _040: {
+        arrayKey: null,
+        tamanho: 8,
+        default: db.dataReferencia,
+        padding: " ",
+      },
+      //Brancos
+      _048: {
+        arrayKey: null,
+        tamanho: 4,
+        default: "",
+        padding: " ",
+      },
+      //Código de operação
+      _052: {
+        arrayKey: null,
+        tamanho: 2,
+        default: "", //setado programaticamente
+        padding: " ",
+        hook: () => {
+          if (obnData[i].BANCO === "001") {
+            registro._052.default = 32;
+          } else {
+            registro._052.default = 31;
+          }
+        },
+      },
+      //Indicador de pagamento de pessoal (0):
+      _054: {
+        arrayKey: null,
+        tamanho: 1,
+        default: "0",
+      },
+      //Zeros
+      _055: {
+        arrayKey: null,
+        tamanho: 9,
+        default: "",
+        padding: "0",
+      },
+      //Valor líquido da OB
+      _064: {
+        arrayKey: 120,
+        tamanho: 15,
+        default: "",
+        padding: " ",
+      },
+      //Código do banco do favorecido
+      _081: {
+        arrayKey: 21,
+        tamanho: 3,
+        default: "",
+        padding: " ",
+      },
+      //Código da agência bancária do favorecido
+      _084: {
+        arrayKey: 25,
+        tamanho: 4,
+        default: "",
+        padding: " ",
+      },
+      //Dígito verificador (DV) da agência bancária do favorecido
+      _088: {
+        arrayKey: 29,
+        tamanho: 1,
+        default: "",
+        padding: " ",
+      },
+      //Código da conta corrente bancária do favorecido
+      _089: {
+        arrayKey: 33,
+        tamanho: 9,
+        default: "",
+        padding: " ",
+      },
+      //Dígito verificador (DV) da conta corrente dofavorecido
+      _098: {
+        arrayKey: 42,
+        tamanho: 1,
+        default: "",
+        padding: " ",
+      },
+      //Nome do favorecido
+      _099: {
+        arrayKey: 44,
+        tamanho: 30,
+        default: "",
+        padding: " ",
+      },
+      //Endereço do favorecido (vazio até ser necessário)
+      _144: {
+        arrayKey: 33 + 240, //Segmento B 33 + 240
+        tamanho: 57,
+        default: "",
+        padding: " ",
+      },
+      //Código Identificador do Sistema de Pagamentos Brasileiro - ISPB do favorecido
+      _201: {
+        arrayKey: null,
+        tamanho: 8,
+        default: "",
+        padding: " ",
+      },
+      //Município do favorecido (vazio até ser necessário)
+      _209: {
+        arrayKey: 98 + 240, //Segmento B 98 + 240
+        tamanho: 20,
+        default: "",
+        padding: " ",
+      },
+      //Código GRU Depósito ou brancos
+      _237: {
+        arrayKey: null,
+        tamanho: 17,
+        default: "",
+        padding: " ",
+      },
+      //CEP do favorecido (vazio até ser necessário)
+      _254: {
+        arrayKey: 118 + 240, //Segmento B 118 + 240
+        tamanho: 8,
+        default: "",
+        padding: " ",
+      },
+      //UF do favorecido (vazio até ser necessário)
+      _262: {
+        arrayKey: 126 + 240, //Segmento B 126 + 240
+        tamanho: 2,
+        default: "",
+        padding: " ",
+      },
+      //Observação da OB
+      _264: {
+        arrayKey: null,
+        tamanho: 40,
+        default: "",
+        padding: " ",
+      },
+      //0
+      _304: {
+        arrayKey: null,
+        tamanho: 1,
+        default: 0,
+      },
+      //Tipo favorecido: (2 = CPF)
+      _305: {
+        arrayKey: null, //SEGMENTO B, 18
+        tamanho: 1,
+        default: 2,
+        padding: " ",
+      },
+      //Código do favorecido (CPF)
+      _306: {
+        arrayKey: 262, //SEGMENTO B, 19 + 3
+        tamanho: 11,
+        default: "",
+      },
+      //Padding CPF (Não usar para CNPJ)
+      _paddingCpf: {
+        tamanho: 3,
+        default: "",
+        padding: " ",
+      },
+      //Prefixo da agência com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
+      _320: {
+        arrayKey: null,
+        tamanho: 5,
+        default: "00868",
+        padding: " ",
+      },
+      //Número conta com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
+      _325: {
+        arrayKey: null,
+        tamanho: 10,
+        default: "203580",
+        padding: "0",
+      },
+      //Finalidade do pagamento – Fundeb
+      _335: {
+        arrayKey: null,
+        tamanho: 3,
+        default: "",
+        padding: " ",
+      },
+      //Brancos
+      _338: {
+        arrayKey: null,
+        tamanho: 4,
+        default: "",
+        padding: " ",
+      },
+      //Código de retorno da operação
+      _342: {
+        arrayKey: null,
+        tamanho: 2,
+        default: "",
+        padding: "0",
+      },
+      //Número seqüencial no arquivo, consecutivo
+      _344: {
+        arrayKey: null,
+        tamanho: 7,
+        default: sequencialArquivo,
+        hook: () => {
+          registro._344.default = sequencialArquivo;
+          trailer._338.default += sequencialArquivo;
+        },
+      },
+    },
+    trailer: {
+      // Noves
+      _001: {
+        tamanho: 35,
+        default: "",
+        padding: "9",
+      },
+      // Brancos
+      _036: {
+        tamanho: 285,
+        default: "",
+        padding: " ",
+      },
+      // Somatório dos valores de todas as OB’s tipo 2.
+      _321: {
+        tamanho: 17,
+        default: somaValores,
+      },
+      // Somatório das sequências de todos os registros exceto o registro trailer
+      _338: {
+        tamanho: 13,
+        default: somaSequenciais,
+      },
+    },
+  };
+
   //aliases
   const header = configOBN.header;
   const registro = configOBN.registro;
@@ -90,20 +430,14 @@ function generateOBN(obnData, callback) {
     if (typeof field.hook === "function") {
       field.hook.bind(this)(); //chama funções setando valores programáticos no campo
     }
-    if (field.inicioCNAB == null) {
-      //default
+    if (field.arrayKey == null) {
+      //all headers must be default set
       outputOBN += (field.default + "").padStart(
         field.tamanho,
         field.padding ? field.padding : 0
       );
     } else {
-      //get cnab
-      outputOBN += (
-        data[0].substring(
-          field.inicioCNAB - 1,
-          field.inicioCNAB + field.tamanho - 1
-        ) + ""
-      ).padStart(field.tamanho, field.padding ? field.padding : 0);
+      throw "Todos os headers devem ser setados na config para gerar a partir de CSV!";
     }
   }
   //incrementa sequencial e quebra linha ao final do header:
@@ -111,10 +445,7 @@ function generateOBN(obnData, callback) {
   outputOBN += "\r\n";
 
   //gera registro (tipo 2 OBN)
-  let value;
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].charAt(13) != "A") continue;
-    linhas = data[i].replace(/\r?\n|\r/g, "") + data[i + 1];
+  for (let i = 0; i < obnData.length; i++) {
     for (const key in registro) {
       const field = registro[key];
 
@@ -129,13 +460,11 @@ function generateOBN(obnData, callback) {
         );
         outputOBN += field.value;
       } else {
-        //get cnab
-        field.value = (
-          linhas.substring(
-            field.inicioCNAB - 1,
-            field.inicioCNAB + field.tamanho - 1
-          ) + ""
-        ).padStart(field.tamanho, field.padding ? field.padding : 0);
+        //get from array
+        field.value = (obnData[i][field.arrayKey] + "").padStart(
+          field.tamanho,
+          field.padding ? field.padding : 0
+        );
         outputOBN += field.value;
       }
       if (key === "_064") {
@@ -155,19 +484,13 @@ function generateOBN(obnData, callback) {
       field.hook.bind(this)(); //chama funções setando valores programáticos no campo
     }
     if (field.inicioCNAB == null) {
-      //default
+      //all trailers must be default set
       outputOBN += (field.default + "").padStart(
         field.tamanho,
         field.padding ? field.padding : 0
       );
     } else {
-      //get cnab
-      outputOBN += (
-        data[0].substring(
-          field.inicioCNAB - 1,
-          field.inicioCNAB + field.tamanho - 1
-        ) + ""
-      ).padStart(field.tamanho, field.padding ? field.padding : 0);
+      throw "Todos os trailers devem ser setados na config para gerar a partir de CSV!";
     }
   }
   callback(outputOBN, sequencialArquivo);
@@ -578,7 +901,6 @@ function generateOBNfromCNAB(data, callback) {
   outputOBN += "\r\n";
 
   //gera registro (tipo 2 OBN)
-  let value;
   for (let i = 0; i < data.length; i++) {
     if (data[i].charAt(13) != "A") continue;
     linhas = data[i].replace(/\r?\n|\r/g, "") + data[i + 1];
