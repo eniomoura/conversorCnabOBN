@@ -4,6 +4,7 @@
   "description": "Pequena ferramenta para converter um documento CNAB para OBN (Febraban)",
   "main": "convertCnab.js",
   "dependencies": {
+    "convert-csv-to-json": "^1.0.2",
     "moment": "^2.29.1"
   },
   "devDependencies": {},

@@ -1,6 +1,8 @@
+//após dev alterar num de lote para 1201
 //libs
 const fs = require("fs");
 const moment = require("moment");
+const csvReader = require("convert-csv-to-json");
 
 //configs
 const minParams = 1;
@@ -11,6 +13,10 @@ const encoding = "utf-8";
 
 //inicializacao
 let db = {};
+let sequencialArquivo = 1;
+let somaSequenciais = 0;
+let somaValores = 0;
+let outputOBN = "";
 if (process.argv.length < 2 + minParams)
   throw (
     "Necessários pelo menos " +
@@ -44,32 +50,136 @@ function createFile(db) {
     "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
   fs.readFile(input, encoding, (err, data) => {
     if (err) throw err;
-    generateOBNfromCNAB(data, (outputOBN, sequencialArquivo) => {
-      fs.appendFile(filename, outputOBN, (err) => {
-        if (err) throw err;
-        updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
-        console.log("Arquivo " + filename + " gerado com sucesso.");
-        return outputOBN;
+    if (input.includes("cnab")) {
+      //gera a partir de CNAB
+      generateOBNfromCNAB(data, (outputOBN, sequencialArquivo) => {
+        fs.appendFile(filename, outputOBN, (err) => {
+          if (err) throw err;
+          updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
+          console.log("Arquivo " + filename + " gerado com sucesso.");
+          return outputOBN;
+        });
       });
-    });
+    } else {
+      //gera a partir de CSV com dados financeiros
+      generateOBN(
+        csvReader.fieldDelimiter(",").getJsonFromCsv(input),
+        (outputOBN, sequencialArquivo) => {
+          fs.appendFile(filename, outputOBN, (err) => {
+            if (err) throw err;
+            updateDb({ numeroLote: db.numeroLote + sequencialArquivo + 1 });
+            console.log("Arquivo " + filename + " gerado com sucesso.");
+            return outputOBN;
+          });
+        }
+      );
+    }
   });
 }
 
 //gera arquivo OBN
-function generateOBN(callback, obnData) {}
+function generateOBN(obnData, callback) {
+  //aliases
+  const header = configOBN.header;
+  const registro = configOBN.registro;
+  const trailer = configOBN.trailer;
+
+  //gera header
+  for (const key in header) {
+    const field = header[key];
+    if (typeof field.hook === "function") {
+      field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+    }
+    if (field.inicioCNAB == null) {
+      //default
+      outputOBN += (field.default + "").padStart(
+        field.tamanho,
+        field.padding ? field.padding : 0
+      );
+    } else {
+      //get cnab
+      outputOBN += (
+        data[0].substring(
+          field.inicioCNAB - 1,
+          field.inicioCNAB + field.tamanho - 1
+        ) + ""
+      ).padStart(field.tamanho, field.padding ? field.padding : 0);
+    }
+  }
+  //incrementa sequencial e quebra linha ao final do header:
+  sequencialArquivo++;
+  outputOBN += "\r\n";
+
+  //gera registro (tipo 2 OBN)
+  let value;
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].charAt(13) != "A") continue;
+    linhas = data[i].replace(/\r?\n|\r/g, "") + data[i + 1];
+    for (const key in registro) {
+      const field = registro[key];
+
+      if (typeof field.hook === "function") {
+        field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+      }
+      if (field.inicioCNAB == null) {
+        //default
+        field.value = (field.default + "").padStart(
+          field.tamanho,
+          field.padding ? field.padding : 0
+        );
+        outputOBN += field.value;
+      } else {
+        //get cnab
+        field.value = (
+          linhas.substring(
+            field.inicioCNAB - 1,
+            field.inicioCNAB + field.tamanho - 1
+          ) + ""
+        ).padStart(field.tamanho, field.padding ? field.padding : 0);
+        outputOBN += field.value;
+      }
+      if (key === "_064") {
+        //soma dos valores totais
+        trailer._321.default += parseInt(field.value);
+      }
+    }
+    //incrementa sequencial e quebra linha ao final do registro:
+    sequencialArquivo++;
+    outputOBN += "\r\n";
+  }
+
+  //gera trailer
+  for (const key in trailer) {
+    const field = trailer[key];
+    if (typeof field.hook === "function") {
+      field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+    }
+    if (field.inicioCNAB == null) {
+      //default
+      outputOBN += (field.default + "").padStart(
+        field.tamanho,
+        field.padding ? field.padding : 0
+      );
+    } else {
+      //get cnab
+      outputOBN += (
+        data[0].substring(
+          field.inicioCNAB - 1,
+          field.inicioCNAB + field.tamanho - 1
+        ) + ""
+      ).padStart(field.tamanho, field.padding ? field.padding : 0);
+    }
+  }
+  callback(outputOBN, sequencialArquivo);
+}
 
 //gera arquivo OBN
 function generateOBNfromCNAB(data, callback) {
-  //init
-  let outputOBN = "";
+  //init CNAB data
   data = data.split("\n");
 
-  let sequencialArquivo = 1;
-  let somaSequenciais = 0;
-  let somaValores = 0;
-
-  //config DE-PARA: Cada campo OBN representa uma posição inicial (mapeada no cnab),
-  //  um tamanho e um default (padding para a esquerda pode ser definido)
+  // Cada campo OBN representa uma posição inicial (mapeada no cnab),
+  // um tamanho e um default (padding para a esquerda pode ser definido)
   const configOBN = {
     header: {
       //Zeros
