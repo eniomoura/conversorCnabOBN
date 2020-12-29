@@ -445,7 +445,6 @@ function generateOBNfromArray(obnData, callback) {
         );
         outputOBN += field.value;
       } else {
-        console.log(obnData[i], field.arrayKey);
         //get from array
         field.value = (obnData[i][field.arrayKey].trim() + "").padStart(
           field.tamanho,
