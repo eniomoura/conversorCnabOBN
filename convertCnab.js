@@ -56,87 +56,7 @@ function createFile(db) {
 }
 
 //gera arquivo OBN
-function generateOBN(callback, obnData) {
-  //init
-  let outputOBN = "";
-
-  let sequencialArquivo = 1;
-  let somaSequenciais = 0;
-  let somaValores = 0;
-
-  //aliases
-  const header = obnData.header;
-  const registro = obnData.registro;
-  const trailer = obnData.trailer;
-
-  //gera header
-  for (const key in header) {
-    const field = header[key];
-    outputOBN += (obnData[0].value + "").padStart(
-      field.tamanho,
-      field.padding ? field.padding : 0
-    );
-  }
-  trailer._338.default += sequencialArquivo;
-  sequencialArquivo++;
-  outputOBN += "\r\n";
-
-  //gera registro (tipo 2 OBN)
-  let value;
-  for (let i = 0; i < obnData.length; i++) {
-    for (const key in registro) {
-      const field = registro[key];
-
-      //Campos setados programaticamente
-      if (key === "_018") {
-        registro._018.default = db.numeroLote;
-      }
-      if (key === "_029") {
-        registro._029.default = sequencialArquivo + db.numeroLote;
-      }
-      if (key === "_040") {
-        registro._040.default = moment("ddmmyyyy");
-      }
-      if (key === "_052") {
-        if (obnData["_081"].value === "001") {
-          registro._052.default = 32;
-        } else {
-          registro._052.default = 31;
-        }
-      }
-      //Campos setados programaticamente END
-
-      if (key !== "_344") {
-        value = (obnData[key].value + "").padStart(
-          field.tamanho,
-          field.padding ? field.padding : 0
-        );
-        outputOBN += value;
-      }
-      if (key === "_064") {
-        trailer._321.default += parseInt(value);
-      }
-      if (key === "_344") {
-        outputOBN += (sequencialArquivo + "").padStart(7, "0");
-        trailer._338.default += sequencialArquivo;
-        sequencialArquivo++;
-      }
-    }
-    outputOBN += "\r\n";
-  }
-
-  //gera trailer
-  for (const key in trailer) {
-    const field = trailer[key];
-    outputOBN += (
-      data[0].substring(
-        field.inicioCNAB - 1,
-        field.inicioCNAB + field.tamanho - 1
-      ) + ""
-    ).padStart(field.tamanho, field.padding ? field.padding : 0);
-  }
-  callback(outputOBN, sequencialArquivo);
-}
+function generateOBN(callback, obnData) {}
 
 //gera arquivo OBN
 function generateOBNfromCNAB(data, callback) {
@@ -243,6 +163,9 @@ function generateOBNfromCNAB(data, callback) {
         tamanho: 11,
         default: "", //setado programaticamente
         padding: "0",
+        hook: () => {
+          registro._018.default = db.numeroLote;
+        },
       },
       //Código da OB
       _029: {
@@ -250,6 +173,9 @@ function generateOBNfromCNAB(data, callback) {
         tamanho: 11,
         default: "", //setado programaticamente
         padding: "0",
+        hook: () => {
+          registro._029.default = sequencialArquivo + db.numeroLote;
+        },
       },
       //Data de referência da relação DDMMAAAA (sobrescrita pela data cnab)
       _040: {
@@ -257,6 +183,9 @@ function generateOBNfromCNAB(data, callback) {
         tamanho: 8,
         default: db.dataReferencia,
         padding: " ",
+        hook: () => {
+          registro._040.default = dataCnab;
+        },
       },
       //Brancos
       _048: {
@@ -271,6 +200,14 @@ function generateOBNfromCNAB(data, callback) {
         tamanho: 2,
         default: "", //setado programaticamente
         padding: " ",
+        hook: () => {
+          cnabValue = linhas.substring(21 - 1, 21 + 3 - 1) + "";
+          if (cnabValue === "001") {
+            registro._052.default = 32;
+          } else {
+            registro._052.default = 31;
+          }
+        },
       },
       //Indicador de pagamento de pessoal (0):
       _054: {
@@ -460,6 +397,11 @@ function generateOBNfromCNAB(data, callback) {
         inicioCNAB: null,
         tamanho: 7,
         default: sequencialArquivo,
+        hook: () => {
+          registro._344.default = sequencialArquivo;
+          trailer._338.default += sequencialArquivo;
+          sequencialArquivo++;
+        },
       },
     },
     trailer: {
@@ -529,34 +471,17 @@ function generateOBNfromCNAB(data, callback) {
     for (const key in registro) {
       const field = registro[key];
 
-      //Campos setados programaticamente
-      if (key === "_018") {
-        registro._018.default = db.numeroLote;
+      if (typeof field.hook === "function") {
+        field.hook.bind(this)(); //chama funções setando valores programáticos no campo
       }
-      if (key === "_029") {
-        registro._029.default = sequencialArquivo + db.numeroLote;
-      }
-      if (key === "_040") {
-        registro._040.default = dataCnab;
-      }
-      if (key === "_052") {
-        cnabValue = linhas.substring(21 - 1, 21 + 3 - 1) + "";
-        if (cnabValue === "001") {
-          registro._052.default = 32;
-        } else {
-          registro._052.default = 31;
-        }
-      }
-      //Campos setados programaticamente END
-
-      if (field.inicioCNAB == null && key !== "_344") {
+      if (field.inicioCNAB == null) {
         //default
         value = (field.default + "").padStart(
           field.tamanho,
           field.padding ? field.padding : 0
         );
         outputOBN += value;
-      } else if (key !== "_344") {
+      } else {
         //get cnab
         value = (
           linhas.substring(
@@ -567,12 +492,7 @@ function generateOBNfromCNAB(data, callback) {
         outputOBN += value;
       }
       if (key === "_064") {
-        trailer._321.default += parseInt(value);
-      }
-      if (key === "_344") {
-        outputOBN += (sequencialArquivo + "").padStart(7, "0");
-        trailer._338.default += sequencialArquivo;
-        sequencialArquivo++;
+        trailer._321.default += parseInt(value); //soma dos valores totais
       }
     }
     outputOBN += "\r\n";
