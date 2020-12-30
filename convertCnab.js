@@ -311,17 +311,30 @@ function generateOBNfromArray(obnData, callback) {
         default: 2,
         padding: " ",
       },
-      //Código do favorecido (CPF)
+      //Código do favorecido (CPF/CNPJ)
       _306: {
-        arrayKey: "CPF",
         tamanho: 11,
-        default: "",
+        default: "", //setado programaticamente
+        hook: (i) => {
+          if (!obnData[i].CNPJ) {
+            registro._306.default = obnData[i].CPF.padEnd(11, " ");
+          } else {
+            registro._306.default = obnData[i].CNPJ.padEnd(13, " ");
+          }
+        },
       },
       //Padding CPF (Não usar para CNPJ)
       _paddingCpf: {
         tamanho: 3,
         default: "",
         padding: " ",
+        hook: (i) => {
+          if (obnData[i].CNPJ) {
+            registro._paddingCpf.tamanho = 0;
+          } else {
+            registro._paddingCpf.tamanho = 3;
+          }
+        },
       },
       //Prefixo da agência com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
       _320: {
