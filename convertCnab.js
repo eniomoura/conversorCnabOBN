@@ -1,3 +1,15 @@
+//lotes inciso 3:
+// 1315 E1PFB
+// 1420 E1PFC
+// 1525 E1PFD
+// 1593 E1PJA
+// 1613 E2PFB
+// 1693 E2PFC
+// 1782 E2PJA
+// 1795 E3PFB
+// 1857 E3PJA
+// 1868 END
+
 //libs
 const fs = require("fs");
 const moment = require("moment");
@@ -44,11 +56,11 @@ fs.readFile(dbfile, encoding, (err, data) => {
 
 function createFile(db) {
   //leitura e geração do arquivo
-  let filename =
-    process.argv[3] ||
-    "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
   if (input.includes("cnab")) {
     //gera a partir de CNAB
+    let filename =
+      process.argv[3] ||
+      "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
     fs.readFile(input, encoding, (err, data) => {
       if (err) throw err;
       generateOBNfromCNAB(data, (outputOBN, sequencialArquivo) => {
@@ -62,6 +74,12 @@ function createFile(db) {
     });
   } else {
     //gera a partir de CSV com dados financeiros
+    let filename =
+      process.argv[3] ||
+      "inciso3-obn600-" +
+        input.slice(0, -4).replace(/[^a-zA-Z0-9 ]/g, "") +
+        moment().format("DDMMhhmmss") +
+        ".txt";
     generateOBNfromArray(
       csvReader.fieldDelimiter(",").getJsonFromCsv(input),
       (outputOBN, sequencialArquivo) => {
@@ -217,7 +235,9 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         padding: "0",
         hook: (i) => {
-          registro._064.default = obnData[i].VALOR + "00";
+          registro._064.default = (parseFloat(obnData[i].VALOR) * 100)
+            .toFixed(2)
+            .slice(0, -3); //workaround para erros de ponto flutuante
         },
       },
       //Código do banco do favorecido
@@ -229,10 +249,22 @@ function generateOBNfromArray(obnData, callback) {
       },
       //Código da agência bancária do favorecido
       _084: {
-        arrayKey: "AGENCIA",
         tamanho: 5,
         default: "",
         padding: "0",
+        hook: (i) => {
+          if (
+            obnData[i].BANCO === "001" ||
+            obnData[i].BANCO === "077" ||
+            obnData[i].BANCO === "237"
+          ) {
+            registro._084.default = obnData[i].AGENCIA.padStart(5, 0);
+          } else {
+            registro._084.default = (
+              obnData[i].AGENCIA.slice(1) + "0"
+            ).padStart(5, 0); //workaround para bancos sem digito
+          }
+        },
       },
       //Código da conta corrente bancária do favorecido
       _089: {
@@ -247,7 +279,10 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         padding: " ",
         hook: (i) => {
-          registro._099.default = obnData[i].NOME.padEnd(45, " ");
+          registro._099.default = obnData[i].NOME.substring(0, 45).padEnd(
+            45,
+            " "
+          );
         },
       },
       //Endereço do favorecido (vazio até ser necessário)
@@ -308,8 +343,14 @@ function generateOBNfromArray(obnData, callback) {
       //Tipo favorecido: (2 = CPF)
       _305: {
         tamanho: 1,
-        default: 2,
         padding: " ",
+        hook: (i) => {
+          if (!obnData[i].CNPJ) {
+            registro._305.default = 2;
+          } else {
+            registro._305.default = 1;
+          }
+        },
       },
       //Código do favorecido (CPF/CNPJ)
       _306: {
@@ -317,9 +358,9 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         hook: (i) => {
           if (!obnData[i].CNPJ) {
-            registro._306.default = obnData[i].CPF.padEnd(11, " ");
+            registro._306.default = obnData[i].CPF.padStart(11, "0");
           } else {
-            registro._306.default = obnData[i].CNPJ.padEnd(13, " ");
+            registro._306.default = obnData[i].CNPJ.padStart(14, "0");
           }
         },
       },
@@ -443,12 +484,19 @@ function generateOBNfromArray(obnData, callback) {
         );
         outputOBN += field.value;
       } else {
-        //get from array
-        field.value = (obnData[i][field.arrayKey].trim() + "").padStart(
-          field.tamanho,
-          field.padding ? field.padding : 0
-        );
-        outputOBN += field.value;
+        try {
+          //get from array
+          field.value = (obnData[i][field.arrayKey].trim() + "").padStart(
+            field.tamanho,
+            field.padding ? field.padding : 0
+          );
+          outputOBN += field.value;
+        } catch (e) {
+          console.error(
+            `Falha ao receber valor ${field.arrayKey} na linha ${i}:`
+          );
+          throw e;
+        }
       }
       if (key === "_064") {
         //soma dos valores totais
@@ -468,10 +516,9 @@ function generateOBNfromArray(obnData, callback) {
     }
     if (field.inicioCNAB == null) {
       //all trailers must be default set
-      outputOBN += (field.default + "").padStart(
-        field.tamanho,
-        field.padding ? field.padding : 0
-      );
+      outputOBN += (field.default + "")
+        .substring(0, field.tamanho)
+        .padStart(field.tamanho, field.padding ? field.padding : 0);
     } else {
       throw "Todos os trailers devem ser setados na config para gerar a partir de CSV!";
     }
@@ -660,21 +707,21 @@ function generateOBNfromCNAB(data, callback) {
         inicioCNAB: 25, //Truncando 1 a esquerda do CNAB (24+1)
         tamanho: 4,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Dígito verificador (DV) da agência bancária do favorecido
       _088: {
         inicioCNAB: 29,
         tamanho: 1,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Código da conta corrente bancária do favorecido
       _089: {
         inicioCNAB: 33, //Truncado 3 a esquerda do CNAB (30+3)
         tamanho: 9,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Dígito verificador (DV) da conta corrente dofavorecido
       _098: {
