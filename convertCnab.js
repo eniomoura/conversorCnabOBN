@@ -8,7 +8,13 @@
 // 1782 E2PJA
 // 1795 E3PFB
 // 1857 E3PJA
-// 1868 END
+// 1868 E1PF2L
+// 1952 E1PJ2L
+// 1963 E2PF2L
+// 2073 E2PJ2L
+// 2088 E3PF2L
+// 2131 E3PJ2L
+// 2145 END
 
 //libs
 const fs = require("fs");
@@ -76,7 +82,9 @@ function createFile(db) {
     //gera a partir de CSV com dados financeiros
     let filename =
       process.argv[3] ||
-      "inciso3-obn600-" +
+      "OBNinciso3-" +
+        db.numeroLote +
+        "-" +
         input.slice(0, -4).replace(/[^a-zA-Z0-9 ]/g, "") +
         moment().format("DDMMhhmmss") +
         ".txt";
@@ -279,10 +287,10 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         padding: " ",
         hook: (i) => {
-          registro._099.default = obnData[i].NOME.substring(0, 45).padEnd(
-            45,
-            " "
-          );
+          registro._099.default = obnData[i].NOME.normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .substring(0, 45)
+            .padEnd(45, " ");
         },
       },
       //Endereço do favorecido (vazio até ser necessário)
