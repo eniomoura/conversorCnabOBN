@@ -87,6 +87,10 @@ function createFile(db) {
         });
       });
     });
+  } else if(input.includes("retorno")){
+    fs.readFile(input, encoding, (err, data) => {
+      generateCSVfromReturnData(data)
+    })
   } else {
     //gera a partir de CSV com dados financeiros
     let filename =
@@ -109,6 +113,436 @@ function createFile(db) {
       }
     );
   }
+}
+
+function generateCSVfromReturnData(data){
+  const configRetorno = {
+    header: {
+      //Zeros
+      _001: {
+        inicioRET: null,
+        tamanho: 35,
+        padding: "0"
+      },
+      //Data de geracao do arquivo
+      _036: {
+        inicioRET: 36,
+        tamanho: 8,
+      },
+      //Hora de geracao do arquivo
+      _044: {
+        inicioRET: 44,
+        tamanho: 4,
+      },
+      //Número da remessa
+      _048: {
+        inicioRET: 48,
+        tamanho: 5,
+      },
+      //10B001 (Alterado para 10E001)
+      _053: {
+        inicioRET: 53,
+        tamanho: 6,
+      },
+      //Número do contrato no Banco
+      _059: {
+        inicioRET: 59,
+        tamanho: 9,
+      },
+      //Código de retorno da remessa
+      _059: {
+        inicioRET: 73,
+        tamanho: 2,
+      },
+      //Motivo da devolução da remessa
+      _059: {
+        inicioRET: 75,
+        tamanho: 44,
+      },
+      //Tipo de arquivo
+      _119: {
+        inicioRET: 119,
+        tamanho: 6,
+      },
+      //Tipo de arquivo
+      _125: {
+        tamanho: 219,
+        padding: " ",
+      },
+      //Numero seqüencial no arquivo, iniciando em 0000001
+      _344: {
+        inicioRET: 344,
+        tamanho: 7,
+      },
+    },
+    registro: {
+      //2
+      _001: {
+        inicioRET: null,
+        tamanho: 1,
+        padding: 2,
+      },
+      //Código da agência bancária da UG/Gestão
+      _002: {
+        inicioRET: 2,
+        tamanho: 5,
+      },
+      //Código da UG
+      _007: {
+        inicioRET: 7,
+        tamanho: 11,
+      },
+      //Código da Gestão
+      _018: {
+        inicioRET: 18,
+        tamanho: 11,
+      },
+      //Código da OB
+      _029: {
+        inicioRET: 52,
+        tamanho: 2,
+      },
+      //Data de referência da relação DDMMAAAA (sobrescrita pela data cnab)
+      _040: {
+        inicioRET: 54,
+        tamanho: 10,
+      },
+      //Brancos
+      _048: {
+        inicioRET: null,
+        tamanho: 4,
+        padding: " ",
+      },
+      //Código de operação
+      _052: {
+        inicioRET: null,
+        tamanho: 2,
+        default: "", //setado programaticamente
+        padding: " ",
+        hook: () => {
+          cnabValue = linhas.substring(21 - 1, 21 + 3 - 1) + "";
+          if (cnabValue === "001") {
+            registro._052.default = 32;
+          } else {
+            registro._052.default = 31;
+          }
+        },
+      },
+      //Indicador de pagamento de pessoal (0):
+      _054: {
+        inicioRET: null,
+        tamanho: 1,
+        default: "0",
+      },
+      //Zeros
+      _055: {
+        inicioRET: null,
+        tamanho: 11, //9 + 2 de padding para prox campo
+        default: "",
+        padding: "0",
+      },
+      //Valor líquido da OB
+      _064: {
+        inicioRET: 120,
+        tamanho: 15,
+        default: "",
+        padding: " ",
+      },
+      //Código do banco do favorecido
+      _081: {
+        inicioRET: 21,
+        tamanho: 3,
+        default: "",
+        padding: " ",
+      },
+      //Código da agência bancária do favorecido
+      _084: {
+        inicioRET: 25, //Truncando 1 a esquerda do CNAB (24+1)
+        tamanho: 4,
+        default: "",
+        padding: "0",
+      },
+      //Dígito verificador (DV) da agência bancária do favorecido
+      _088: {
+        inicioRET: 29,
+        tamanho: 1,
+        default: "",
+        padding: "0",
+      },
+      //Código da conta corrente bancária do favorecido
+      _089: {
+        inicioRET: 33, //Truncado 3 a esquerda do CNAB (30+3)
+        tamanho: 9,
+        default: "",
+        padding: "0",
+      },
+      //Dígito verificador (DV) da conta corrente dofavorecido
+      _098: {
+        inicioRET: 42,
+        tamanho: 1,
+        default: "",
+        padding: " ",
+      },
+      //Nome do favorecido
+      _099: {
+        inicioRET: 44,
+        tamanho: 30,
+        default: "",
+        padding: " ",
+      },
+      //Padding - Nome do favorecido (CNAB: 30, OBN: 45)
+      _p099: {
+        tamanho: 15,
+        default: "",
+        padding: " ",
+      },
+      //Endereço do favorecido (vazio até ser necessário)
+      _144: {
+        inicioRET: 33 + 240, //Segmento B 33 + 240
+        tamanho: 57,
+        default: "",
+        padding: " ",
+      },
+      //Código Identificador do Sistema de Pagamentos Brasileiro - ISPB do favorecido
+      _201: {
+        inicioRET: null,
+        tamanho: 8,
+        default: "",
+        padding: " ",
+      },
+      //Município do favorecido (vazio até ser necessário)
+      _209: {
+        inicioRET: 98 + 240, //Segmento B 98 + 240
+        tamanho: 20,
+        default: "",
+        padding: " ",
+      },
+      //Padding para final de municipio (CNAB 20, OBN 28)
+      paddingMunicipio: {
+        tamanho: 8,
+        default: "",
+        padding: " ",
+      },
+      //Código GRU Depósito ou brancos
+      _237: {
+        inicioRET: null,
+        tamanho: 17,
+        default: "",
+        padding: " ",
+      },
+      //CEP do favorecido (vazio até ser necessário)
+      _254: {
+        inicioRET: 118 + 240, //Segmento B 118 + 240
+        tamanho: 8,
+        default: "",
+        padding: " ",
+      },
+      //UF do favorecido (vazio até ser necessário)
+      _262: {
+        inicioRET: 126 + 240, //Segmento B 126 + 240
+        tamanho: 2,
+        default: "",
+        padding: " ",
+      },
+      //Observação da OB
+      _264: {
+        inicioRET: null,
+        tamanho: 40,
+        default: "",
+        padding: " ",
+      },
+      //0
+      _304: {
+        inicioRET: null,
+        tamanho: 1,
+        default: 0,
+      },
+      //Tipo favorecido: (2 = CPF)
+      _305: {
+        inicioRET: null, //SEGMENTO B, 18
+        tamanho: 1,
+        default: 2,
+        padding: " ",
+      },
+      //Código do favorecido (CPF)
+      _306: {
+        inicioRET: 262, //SEGMENTO B, 19 + 3
+        tamanho: 11,
+        default: "",
+      },
+      //Padding CPF (Não usar para CNPJ)
+      _paddingCpf: {
+        tamanho: 3,
+        default: "",
+        padding: " ",
+      },
+      //Prefixo da agência com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
+      _320: {
+        inicioRET: null,
+        tamanho: 5,
+        default: "00868",
+        padding: " ",
+      },
+      //Número conta com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
+      _325: {
+        inicioRET: null,
+        tamanho: 10,
+        default: "203580",
+        padding: "0",
+      },
+      //Finalidade do pagamento – Fundeb
+      _335: {
+        inicioRET: null,
+        tamanho: 3,
+        default: "",
+        padding: " ",
+      },
+      //Brancos
+      _338: {
+        inicioRET: null,
+        tamanho: 4,
+        default: "",
+        padding: " ",
+      },
+      //Código de retorno da operação
+      _342: {
+        inicioRET: null,
+        tamanho: 2,
+        default: "",
+        padding: "0",
+      },
+      //Número seqüencial no arquivo, consecutivo
+      _344: {
+        inicioRET: null,
+        tamanho: 7,
+        default: sequencialArquivo,
+        hook: () => {
+          registro._344.default = sequencialArquivo;
+          trailer._338.default += sequencialArquivo;
+        },
+      },
+    },
+    trailer: {
+      // Noves
+      _001: {
+        inicioRET: null,
+        tamanho: 35,
+        default: "",
+        padding: "9",
+      },
+      // Brancos
+      _036: {
+        inicioRET: null,
+        tamanho: 285,
+        default: "",
+        padding: " ",
+      },
+      // Somatório dos valores de todas as OB’s tipo 2.
+      _321: {
+        inicioRET: null,
+        tamanho: 17,
+        default: somaValores,
+      },
+      // Somatório das sequências de todos os registros exceto o registro trailer
+      _338: {
+        inicioRET: null,
+        tamanho: 13,
+        default: somaSequenciais,
+      },
+    },
+  };
+
+  //aliases
+  const header = configRetorno.header;
+  const registro = configRetorno.registro;
+  const trailer = configRetorno.trailer;
+
+  //gera header
+  for (const key in header) {
+    const field = header[key];
+    if (typeof field.hook === "function") {
+      field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+    }
+    if (field.inicioRET == null) {
+      //default
+      outputCSV += (field.default + "").padStart(
+        field.tamanho,
+        field.padding ? field.padding : 0
+      );
+    } else {
+      //get cnab
+      outputCSV += (
+        data[0].substring(
+          field.inicioRET - 1,
+          field.inicioRET + field.tamanho - 1
+        ) + ""
+      ).padStart(field.tamanho, field.padding ? field.padding : 0);
+    }
+  }
+  //incrementa sequencial e quebra linha ao final do header:
+  sequencialArquivo++;
+  outputCSV += "\r\n";
+
+  //gera registro (tipo 2 OBN)
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].charAt(13) != "A") continue;
+    linhas = data[i].replace(/\r?\n|\r/g, "") + data[i + 1];
+    for (const key in registro) {
+      const field = registro[key];
+
+      if (typeof field.hook === "function") {
+        field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+      }
+      if (field.inicioRET == null) {
+        //default
+        field.value = (field.default + "").padStart(
+          field.tamanho,
+          field.padding ? field.padding : 0
+        );
+        outputCSV += field.value;
+      } else {
+        //get cnab
+        field.value = (
+          linhas.substring(
+            field.inicioRET - 1,
+            field.inicioRET + field.tamanho - 1
+          ) + ""
+        ).padStart(field.tamanho, field.padding ? field.padding : 0);
+        outputCSV += field.value;
+      }
+      if (key === "_064") {
+        //soma dos valores totais
+        trailer._321.default += parseInt(field.value);
+      }
+    }
+    //incrementa sequencial e quebra linha ao final do registro:
+    sequencialArquivo++;
+    outputCSV += "\r\n";
+  }
+
+  //gera trailer
+  for (const key in trailer) {
+    const field = trailer[key];
+    if (typeof field.hook === "function") {
+      field.hook.bind(this)(); //chama funções setando valores programáticos no campo
+    }
+    if (field.inicioRET == null) {
+      //default
+      outputCSV += (field.default + "").padStart(
+        field.tamanho,
+        field.padding ? field.padding : 0
+      );
+    } else {
+      //get cnab
+      outputCSV += (
+        data[0].substring(
+          field.inicioRET - 1,
+          field.inicioRET + field.tamanho - 1
+        ) + ""
+      ).padStart(field.tamanho, field.padding ? field.padding : 0);
+    }
+  }
+  callback(outputCSV, sequencialArquivo);
 }
 
 //gera arquivo OBN
