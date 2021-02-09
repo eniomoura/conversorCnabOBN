@@ -375,9 +375,9 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         hook: (i) => {
           if (!obnData[i].CNPJ) {
-            registro._306.default = obnData[i].CPF.padStart(11, "0");
+            registro._306.default = obnData[i].CPF.trim().padStart(11, "0");
           } else {
-            registro._306.default = obnData[i].CNPJ.padStart(14, "0");
+            registro._306.default = obnData[i].CNPJ.trim().padStart(14, "0");
           }
         },
       },
