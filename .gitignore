@@ -2,4 +2,4 @@
 /old
 *.txt
 db.json
-.csv
+*.csv
