@@ -95,10 +95,10 @@ function createFile(db) {
         });
       });
     });
-  } else if(input.includes("retorno")){
+  } else if (input.includes("retorno")) {
     fs.readFile(input, encoding, (err, data) => {
-      generateCSVfromReturnData(data)
-    })
+      generateCSVfromReturnData(data);
+    });
   } else {
     //gera a partir de CSV com dados financeiros
     let filename =
@@ -123,14 +123,14 @@ function createFile(db) {
   }
 }
 
-function generateCSVfromReturnData(data){
+function generateCSVfromReturnData(data) {
   const configRetorno = {
     header: {
       //Zeros
       _001: {
         inicioRET: null,
         tamanho: 35,
-        padding: "0"
+        padding: "0",
       },
       //Data de geracao do arquivo
       _036: {
