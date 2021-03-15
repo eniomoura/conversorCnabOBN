@@ -694,6 +694,8 @@ function generateOBNfromArray(obnData, callback) {
             registro._084.default = obnData[i].AGENCIA.padStart(5, 0);
           } else if (obnData[i].AGENCIA.length < 5) {
             registro._084.default = (obnData[i].AGENCIA + "0").padStart(5, 0); //workaround para bancos sem digito
+          } else {
+            registro._084.default = obnData[i].AGENCIA;
           }
         },
       },
