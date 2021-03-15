@@ -235,7 +235,7 @@ function generateCSVfromReturnData(data) {
         inicioRET: 21,
         tamanho: 3,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Código da agência bancária do favorecido
       _084: {
@@ -1131,7 +1131,7 @@ function generateOBNfromCNAB(data, callback) {
         inicioCNAB: 21,
         tamanho: 3,
         default: "",
-        padding: " ",
+        padding: "0",
       },
       //Código da agência bancária do favorecido
       _084: {
