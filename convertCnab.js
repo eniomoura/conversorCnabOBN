@@ -41,6 +41,12 @@ fs.readFile(dbfile, encoding, (err, data) => {
     if (!db.numContrato) {
       console.warn('Setar variável "numContrato" no db!');
     }
+    if (!db.dataReferencia) {
+      console.warn('Setar variável "dataReferencia" no db!');
+    }
+    if (!db.contaSecult) {
+      console.warn('Setar variável "contaSecult" no db!');
+    }
   }
   createFile(db);
 });
