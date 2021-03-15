@@ -676,7 +676,7 @@ function generateOBNfromArray(obnData, callback) {
       //Código do banco do favorecido
       _081: {
         arrayKey: "BANCO",
-        tamanho: 3, //padding de 2 zeros para campo anterior (0 centavos)
+        tamanho: 3,
         default: "",
         padding: "0",
       },
