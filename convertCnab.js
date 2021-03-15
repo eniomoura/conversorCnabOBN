@@ -1,37 +1,5 @@
 //lotes inciso 3:
-// 1315 E1PFB
-// 1420 E1PFC
-// 1525 E1PFD
-// 1593 E1PJA
-// 1613 E2PFB
-// 1693 E2PFC
-// 1782 E2PJA
-// 1795 E3PFB
-// 1857 E3PJA
-// 1868 E1PF2L
-// 1952 E1PJ2L
-// 1963 E2PF2L
-// 2073 E2PJ2L
-// 2088 E3PF2L
-// 2131 E3PJ2L
-// 2145 E1PJAL1c
-// 2156 E2PFBL1c
-// 2169 E2PJAL1c
-// 2183 E1L1PFc
-// 2231 E1L1PJc
-// 2241 E2L1PFc
-// 2257 E2L1PJc
-// 2263 E3L1PFc
-// 2273 E3L1PJc
-// 2281 L2LE1 - CANCELADO
-// 2444 LUNICO - CANCELADO
-// 2458 L2E3PF
-// 2507 L2E3PJ
-// 2521 234E2PJ
-// 2541 2345E2PF
-// 2738 L2LE1 - REENVIO
-// 2901 LUNICO - REENVIO
-// 2915 END
+// 3397
 
 //libs
 const fs = require("fs");
@@ -718,10 +686,8 @@ function generateOBNfromArray(obnData, callback) {
             obnData[i].BANCO === "237"
           ) {
             registro._084.default = obnData[i].AGENCIA.padStart(5, 0);
-          } else {
-            registro._084.default = (
-              obnData[i].AGENCIA.slice(1) + "0"
-            ).padStart(5, 0); //workaround para bancos sem digito
+          } else if (obnData[i].AGENCIA.length < 5) {
+            registro._084.default = (obnData[i].AGENCIA + "0").padStart(5, 0); //workaround para bancos sem digito
           }
         },
       },
