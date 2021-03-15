@@ -363,7 +363,7 @@ function generateCSVfromReturnData(data) {
       _325: {
         inicioRET: null,
         tamanho: 10,
-        default: "203580",
+        default: db.contaSecult,
         padding: "0",
       },
       //Finalidade do pagamento – Fundeb
@@ -599,7 +599,7 @@ function generateOBNfromArray(obnData, callback) {
       //Código da Gestão
       _013: {
         tamanho: 5,
-        default: 20358,
+        default: db.contaSecult.slice(0, 5),
         padding: " ",
       },
       //Código da relação (RE) na qual consta a OB
@@ -811,7 +811,7 @@ function generateOBNfromArray(obnData, callback) {
       //Número conta com DV para débito (EXCLUSIVO PARA OB DE CONVÊNIOS)
       _325: {
         tamanho: 10,
-        default: "203580",
+        default: db.contaSecult,
         padding: "0",
       },
       //Finalidade do pagamento – Fundeb
@@ -1045,7 +1045,7 @@ function generateOBNfromCNAB(data, callback) {
       _013: {
         inicioCNAB: null,
         tamanho: 5,
-        default: 20358,
+        default: db.contaSecult.slice(0, 5),
         padding: " ",
       },
       //Código da relação (RE) na qual consta a OB
@@ -1259,7 +1259,7 @@ function generateOBNfromCNAB(data, callback) {
       _325: {
         inicioCNAB: null,
         tamanho: 10,
-        default: "203580",
+        default: db.contaSecult,
         padding: "0",
       },
       //Finalidade do pagamento – Fundeb
