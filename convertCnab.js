@@ -57,7 +57,12 @@ function createFile(db) {
     //gera a partir de CNAB
     let filename =
       process.argv[3] ||
-      "inciso1-obn600" + moment().format("DDMMYYhhmmss") + ".txt";
+      "OBNinciso1-" +
+        db.numeroLote +
+        "-" +
+        input.slice(0, -4).replace(/[^a-zA-Z0-9 ]/g, "") +
+        moment().format("DDMMhhmmss") +
+        ".txt";
     fs.readFile(input, encoding, (err, data) => {
       if (err) throw err;
       generateOBNfromCNAB(data, (outputOBN, sequencialArquivo) => {
