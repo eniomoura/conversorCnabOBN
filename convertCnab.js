@@ -649,7 +649,11 @@ function generateOBNfromArray(obnData, callback) {
         default: "", //setado programaticamente
         padding: " ",
         hook: (i) => {
-          if (obnData[i].BANCO === "001") {
+          console.log(
+            parseInt(obnData[i].BANCO) === 1,
+            parseInt(obnData[i].BANCO)
+          );
+          if (parseInt(obnData[i].BANCO) === 1) {
             registro._052.default = 32;
           } else {
             registro._052.default = 31;
@@ -692,9 +696,9 @@ function generateOBNfromArray(obnData, callback) {
         padding: "0",
         hook: (i) => {
           if (
-            obnData[i].BANCO === "001" ||
-            obnData[i].BANCO === "077" ||
-            obnData[i].BANCO === "237"
+            parseInt(obnData[i].BANCO) === 1 ||
+            parseInt(obnData[i].BANCO) === 77 ||
+            parseInt(obnData[i].BANCO) === 237
           ) {
             registro._084.default = obnData[i].AGENCIA.padStart(5, 0);
           } else if (obnData[i].AGENCIA.length < 5) {
